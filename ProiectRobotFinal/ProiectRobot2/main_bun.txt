@@ -1,0 +1,64 @@
+  [STAThread] // Necesar pentru interfețe grafice Windows Forms
+            static void Main(string[] args)
+            {
+                EvolutionaryAlgorithm ea = new EvolutionaryAlgorithm();
+                RobotEvolution problem = new RobotEvolution();
+
+                int popSize = 50;
+                List<Chromosome> population = new List<Chromosome>();
+
+                // Inițializarea populației
+                for (int i = 0; i < popSize; i++)
+                {
+                    var c = problem.MakeChromosome();
+                    problem.ComputeFitness(c);
+                    population.Add(c);
+                }
+
+
+                Console.WriteLine("=== PROGRES EVOLUȚIE (NSGA-II) ===");
+                Console.WriteLine("Gen | Viteză Max | Siguranță Max | Indivizi Elită");
+                Console.WriteLine("-------------------------------------------------");
+
+
+                // Rularea evoluției
+                Console.WriteLine("Se antrenează roboții... Vă rugăm așteptați.");
+                for (int gen = 0; gen < 100; gen++)
+                {
+                    population = ea.RunOneGeneration(problem, population, popSize, 0.9, 0.1);
+                }
+
+            // Extragem Frontul Pareto (indivizii cu Rank 1)
+            var finalFront = population.Where(p => p.Rank == 1).ToList();
+
+            if (finalFront.Count > 0)
+            {
+                // 1. Identificăm extremele
+                // Cel mai mic Objectives[0] înseamnă distanța cea mai mare (Viteză maximă)
+                var fastestRobot = finalFront.OrderBy(p => p.Objectives[0]).First();
+
+                // Cel mai mic Objectives[1] înseamnă gap-ul cel mai mare (Siguranță maximă)
+                var safestRobot = finalFront.OrderBy(p => p.Objectives[1]).First();
+
+                // 2. Pregătim mediul grafic
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+
+                // 3. Prima parte a demonstrației: VITEZA
+                Console.WriteLine("\n>>> DEMONSTRAȚIE 1: Robotul OPTIMIZAT PENTRU VITEZĂ");
+                Console.WriteLine($"Performanță (Dist): {-fastestRobot.Objectives[0]:F2}");
+                Console.WriteLine("Închideți fereastra pentru a vedea varianta pentru SIGURANȚĂ.");
+
+                // Titlu personalizat pentru fereastră
+                SimulationForm speedForm = new SimulationForm(fastestRobot);
+                speedForm.Text = "Demonstrație NSGA-II: MAXIM VITEZĂ (W1 ridicat)";
+                Application.Run(speedForm);
+
+                // 4. A doua parte a demonstrației: SIGURANȚA
+                Console.WriteLine("\n>>> DEMONSTRAȚIE 2: Robotul OPTIMIZAT PENTRU SIGURANȚĂ");
+                Console.WriteLine($"Siguranță (Min Gap): {-safestRobot.Objectives[1]:F2}");
+
+                SimulationForm safetyForm = new SimulationForm(safestRobot);
+                safetyForm.Text = "Demonstrație NSGA-II: MAXIM SIGURANȚĂ (W2 ridicat)";
+                Application.Run(safetyForm);
+            }
